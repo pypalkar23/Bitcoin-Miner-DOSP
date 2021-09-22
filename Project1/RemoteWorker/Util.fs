@@ -21,4 +21,3 @@ let rec checkInitialZeros (text:string,k:int,curr:int) =
 //printfn "%s" (calculateSHA256("10000"));  
 //printfn "%s" ((checkInitialZeros("000005",4,0))|>string) 
 
-
