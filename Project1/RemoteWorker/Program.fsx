@@ -5,11 +5,10 @@
 #load "Util.fs"
 
 open System
+open System.Diagnostics
 open Akka.Actor
 open Akka.FSharp
 open Akka.Configuration
-open Akka.Remote
-open System.Diagnostics
 open Util
 
 
@@ -38,6 +37,7 @@ type JobDetails =
     | Input of (int64 * int64 * int)
     | Done of (string)
     | Join of (string)
+    | Found of (string)
 
 
 let actorSystem =
@@ -56,12 +56,13 @@ let RemoteClient (mailbox: Actor<_>) =
                     let hashVal = i |> string |> Util.calculateSHA256
 
                     if checkInitialZeros (hashVal, k, 0) then
-                        printf "%s\n" hashVal
+                        sender <! Found(hashVal)
 
-                    sender <! Done("completed")
-                    return! loop ()
-             | _ -> ()
+                sender <! Done("completed")
+                return! loop ()
+            | _ -> ()
         }
+
     loop ()
 
 printf "reaching here\n"
@@ -72,13 +73,15 @@ let RemoteBoss (ip_address: string) (mailbox: Actor<_>) =
     let serverUrl =
         $"akka.tcp://MinerServer@{ip_address}:{server_port}/user/ServerBossActor"
 
-    printf "%s\n" serverUrl
+    let printerUrl =
+        $"akka.tcp://MinerServer@{ip_address}:{server_port}/user/PrinterActor"
+
     let serverRef = select serverUrl actorSystem
+    let printerRef = select printerUrl actorSystem
 
-    let numberOfCores =
-        System.Environment.ProcessorCount |> int64
+    let numberOfCores = Environment.ProcessorCount |> int64
 
-    let numberOfChildActors = numberOfCores * 5000L
+    let numberOfChildActors = numberOfCores * 250L
 
     let workerActorsPool =
         [ 1L .. numberOfChildActors ]
@@ -90,63 +93,67 @@ let RemoteBoss (ip_address: string) (mailbox: Actor<_>) =
         actorSystem.ActorOf(Props.Empty.WithRouter(Akka.Routing.RoundRobinGroup(workerenum)))
 
     let mutable splits = 0L
-    let mutable completed = 0L
-    let splitSize = numberOfChildActors * 2L
-    printf "splitsize %d\n" splitSize
-
+    let mutable splitsInProcess = 0L
+    let mutable tempStart = 0L
+    let mutable tempEnd = 0L
+    let chunkSize = numberOfChildActors * 2L
+        
     let rec loop () =
         actor {
             let! (message: obj) = mailbox.Receive()
-            let boss = mailbox.Sender()
-
+     
             match message with
             | :? string as s ->
                 match s with
-                | "shutdown" -> 
-                    printf "received shutdown signal\n"
+                | "shutdown" ->
+                    printf "Received order to shutdown .. no more jobs to process\n"
                     mailbox.Context.System.Terminate() |> ignore
                 | _ -> ()
             | :? Tuple<int64, int64, int> as t ->
-                let (startInd, delta, k): Tuple<int64, int64, int> = downcast message
-                printf "received message with startInd %d delta %d and k %d\n" startInd delta k
-                splits <- delta / splitSize
-                printf "splits %d\n" splits
+                let (startInd, endInd, k): Tuple<int64, int64, int> = downcast message
+                printf "Starting Processing For Block %d-%d and k: %d\n" startInd endInd k
+                splits <- (endInd - startInd + 1L) / chunkSize
+                tempStart <- startInd
+                tempEnd <- endInd
                 let mutable chunkStart = startInd
-                let mutable chunkEnd = startInd + splitSize - 1L
+                let mutable chunkEnd = startInd + chunkSize - 1L
+                splitsInProcess <- splits
                 for i in 1L .. splits do
                     workerSystem <! Input(chunkStart, chunkEnd, k)
                     chunkStart <- chunkEnd + 1L
-                    chunkEnd <- chunkEnd + splitSize
+                    chunkEnd <- chunkEnd + chunkSize
             | :? JobDetails as jd ->
                 match jd with
-                    | Join ("join") -> serverRef <! "Joining"
-                    | Done (complete) ->
-                        completed <- completed + 1L
-                        //printf "completed %d\n" completed
-                        if completed = splits then
-                            printf "sending done signal\n"
-                            serverRef <! "DoneRemote"
-                            //mailbox.Context.System.Terminate() |> ignore
+                | Join ("join") -> serverRef <! "Joining"
+                | Done (complete) ->
+                    splitsInProcess <- splitsInProcess - 1L
+                    if (splitsInProcess = 0L) then 
+                        printf "Finished Processing For Block %d-%d\n" tempStart tempEnd
+                        serverRef <! "DoneRemote"
+                | Found (coinValue) -> printerRef <! "*" + coinValue
+                | _ -> ()
+            | _ -> ()
+
             return! loop ()
         }
+
     loop ()
 
-let serverIpAddress =
-    System.Environment.GetCommandLineArgs().[1]
-
+let serverIpAddress = Environment.GetCommandLineArgs().[1]
 let proc = Process.GetCurrentProcess()
-let cpu_time_stamp = proc.TotalProcessorTime
+let cpuTimeStamp = proc.TotalProcessorTime
 let timer = new Stopwatch()
 timer.Start()
 
 try
     let remoteBossRef =
         spawn actorSystem "remoteBoss" (RemoteBoss serverIpAddress)
+
     remoteBossRef <! Join("join")
     actorSystem.WhenTerminated.Wait()
 finally
     let cpu_time =
-        (proc.TotalProcessorTime - cpu_time_stamp)
+        (proc.TotalProcessorTime - cpuTimeStamp)
             .TotalMilliseconds
 
     printfn "CPU time = %dms" (int64 cpu_time)
