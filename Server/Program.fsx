@@ -25,7 +25,7 @@ let configuration =
             remote.helios.tcp {
                 transport-protocol = tcp
                 port = 5000
-                hostname = 10.20.81.11
+                hostname = 0.0.0.0
             }
         }"
     )
@@ -102,7 +102,7 @@ let ServerSubordinateActor (mailbox: Actor<_>) =
     let numberOfCores =
         System.Environment.ProcessorCount |> int64
 
-    let numberOfChildActors = numberOfCores * 1000L
+    let numberOfChildActors = numberOfCores * 2000L
     let splitSize = numberOfChildActors * 2L
     let workerActorsPool =
         [ 1L .. numberOfChildActors ]
@@ -142,10 +142,10 @@ let ServerSubordinateActor (mailbox: Actor<_>) =
 let ServerBoss (mailbox: Actor<_>) =
     let serverSubActorRef = spawn mailbox.Context "ServerSubActor" ServerSubordinateActor
     let mutable startInd = 1L
-    let jobSize = 200000L
-    let maxInd = 10000000000L
+    let jobSize = 2000000L
+    let multiplier = 100000000L
+    let mutable maxInd = 0L
     //let mutable blocksInProgress = maxInd/jobSize       
-    let mutable remoteMachinesConnected = 0
     let mutable numOfZeros = 0
     let mutable localBlocksInProgress = 0L
     let mutable remoteBlocksInProgress = 0L
@@ -164,7 +164,7 @@ let ServerBoss (mailbox: Actor<_>) =
                          if (localBlocksInProgress = 0L) then
                             sender <! "shutdown"
                          //remoteMachinesConnected <- remoteMachinesConnected - 1
-                            printf "In remote calculation block startInd %d\n" startInd 
+                            //printf "In remote calculation block startInd %d\n" startInd 
                             remoteBlocksInProgress <- remoteBlocksInProgress + 1L
                             mailbox.Context.System.Terminate()|>ignore
                        else
@@ -180,6 +180,7 @@ let ServerBoss (mailbox: Actor<_>) =
                 match jd with
                 | Criteria (k) -> 
                     numOfZeros <- k
+                    maxInd <- multiplier * (k|>int64)
                     serverSubActorRef <! Input(startInd,startInd+jobSize-1L,numOfZeros)
                     localBlocksInProgress <-  localBlocksInProgress + 1L
                 | Done (complete) ->
@@ -200,7 +201,8 @@ let ServerBoss (mailbox: Actor<_>) =
 let serverBossRef =
     spawn actorSystem "ServerBossActor" ServerBoss
 
-let zeroCount = Environment.GetCommandLineArgs().[1] |> int
+let zeroCountStr = System.Environment.GetCommandLineArgs() |> fun x -> if (x.Length = 2) then x.[1] else "4"
+let zeroCount = zeroCountStr |> int
 let proc = Process.GetCurrentProcess()
 let cpuTimeStamp = proc.TotalProcessorTime
 let timer = new Stopwatch()

@@ -12,7 +12,7 @@ open Akka.Configuration
 open Util
 
 
-let server_port = 5000
+let serverPort = 5000
 
 let configuration =
     ConfigurationFactory.ParseString(
@@ -66,16 +66,15 @@ let RemoteClient (mailbox: Actor<_>) =
 
     loop ()
 
-printf "reaching here\n"
 
-let RemoteBoss (ip_address: string) (mailbox: Actor<_>) =
-    printf "%s\n" ip_address
+let RemoteBoss (ipAddress: string) (mailbox: Actor<_>) =
+    printf "connecting to server -> %s:%d\n" ipAddress serverPort
 
     let serverUrl =
-        $"akka.tcp://MinerServer@{ip_address}:{server_port}/user/ServerBossActor"
+        $"akka.tcp://MinerServer@{ipAddress}:{serverPort}/user/ServerBossActor"
 
     let printerUrl =
-        $"akka.tcp://MinerServer@{ip_address}:{server_port}/user/PrinterActor"
+        $"akka.tcp://MinerServer@{ipAddress}:{serverPort}/user/PrinterActor"
 
     let serverRef = select serverUrl actorSystem
     let printerRef = select printerUrl actorSystem
@@ -112,7 +111,7 @@ let RemoteBoss (ip_address: string) (mailbox: Actor<_>) =
                 | _ -> ()
             | :? Tuple<int64, int64, int> as t ->
                 let (startInd, endInd, k): Tuple<int64, int64, int> = downcast message
-                printf "Starting Processing For Block %d-%d and k: %d\n" startInd endInd k
+                printf "Received Message To Process Block %d-%d and k: %d\n" startInd endInd k
                 splits <- (endInd - startInd + 1L) / chunkSize
                 tempStart <- startInd
                 tempEnd <- endInd
@@ -131,7 +130,7 @@ let RemoteBoss (ip_address: string) (mailbox: Actor<_>) =
                     if (splitsInProcess = 0L) then 
                         printf "Finished Processing For Block %d-%d\n" tempStart tempEnd
                         serverRef <! "DoneRemote"
-                | Found (coinValue) -> printerRef <! "*" + coinValue
+                | Found (coinValue) -> printerRef <! coinValue+ " r" //suffixing remote machines coins with r 
                 | _ -> ()
             | _ -> ()
 
@@ -140,7 +139,7 @@ let RemoteBoss (ip_address: string) (mailbox: Actor<_>) =
 
     loop ()
 
-let serverIpAddress = Environment.GetCommandLineArgs().[1]
+let serverIpAddress = Environment.GetCommandLineArgs()|> fun x -> if (x.Length=2) then x.[1] else "0.0.0.0" 
 let proc = Process.GetCurrentProcess()
 let cpuTimeStamp = proc.TotalProcessorTime
 let timer = new Stopwatch()
