@@ -53,10 +53,11 @@ let RemoteClient (mailbox: Actor<_>) =
             | Input (startInd, endInd, k) ->
                 //printf "%d %d %d\n" k startInd endInd
                 for i in startInd .. endInd do
-                    let hashVal = i |> string |> Util.calculateSHA256
+                    let prefixedString = i |> string |> fun x-> prefixKey+x
+                    let hashVal = prefixedString |> Util.calculateSHA256
 
                     if checkInitialZeros (hashVal, k, 0) then
-                        sender <! Found(hashVal)
+                        sender <! Found(prefixedString+" "+hashVal)
 
                 sender <! Done("completed")
                 return! loop ()

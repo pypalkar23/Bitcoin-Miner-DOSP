@@ -6,7 +6,7 @@ let prefixKey = "mandar.palkar"
 
 
 let calculateSHA256 (x:string) =
-    prefixKey+x |> Encoding.ASCII.GetBytes |> (new SHA256Managed()).ComputeHash |> Seq.map( fun b -> b.ToString("x2")) |> String.concat ""
+    x |> Encoding.ASCII.GetBytes |> (new SHA256Managed()).ComputeHash |> Seq.map( fun b -> b.ToString("x2")) |> String.concat ""
 
 
 let rec checkInitialZeros (text:string,k:int,curr:int) =

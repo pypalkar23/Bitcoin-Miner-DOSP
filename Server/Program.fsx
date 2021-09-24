@@ -10,6 +10,7 @@ open Akka.Configuration
 open System.Diagnostics
 open Util
 
+let prefixKey = "mandar.palkar"
 let server_port = 5000
 
 let configuration =
@@ -35,7 +36,6 @@ type JobDetails =
     | Criteria of (int)
     | Input of (int64 * int64 * int)
     | Done of (string)
-    | Found of (string)
 
 let actorSystem =
     ActorSystem.Create("MinerServer", configuration)
@@ -85,10 +85,11 @@ let ServerWorker (mailbox: Actor<_>) =
                 //printf "%d %d %d\n" k startInd endInd
                 for i in startInd .. endInd do
                     //let hashVal = (startInd|>double) + (endInd|>double)* (Random().NextDouble()) |> string |> Util.calculateSHA256
-                    let hashVal = i |> string |> Util.calculateSHA256
+                    let prefixedString = i |> string |> fun x-> prefixKey+x
+                    let hashVal = prefixedString |> Util.calculateSHA256
 
                     if checkInitialZeros (hashVal, k, 0) then
-                        printerRef <! hashVal      
+                        printerRef <! prefixedString+" "+hashVal   
                 sender <! Done("completed")
             | _ -> ()
             return! loop ()
@@ -101,7 +102,7 @@ let ServerSubordinateActor (mailbox: Actor<_>) =
     let numberOfCores =
         System.Environment.ProcessorCount |> int64
 
-    let numberOfChildActors = numberOfCores * 250L
+    let numberOfChildActors = numberOfCores * 1000L
     let splitSize = numberOfChildActors * 2L
     let workerActorsPool =
         [ 1L .. numberOfChildActors ]
@@ -141,8 +142,8 @@ let ServerSubordinateActor (mailbox: Actor<_>) =
 let ServerBoss (mailbox: Actor<_>) =
     let serverSubActorRef = spawn mailbox.Context "ServerSubActor" ServerSubordinateActor
     let mutable startInd = 1L
-    let jobSize = 2000000L
-    let maxInd = 100000000L
+    let jobSize = 200000L
+    let maxInd = 10000000000L
     //let mutable blocksInProgress = maxInd/jobSize       
     let mutable remoteMachinesConnected = 0
     let mutable numOfZeros = 0
