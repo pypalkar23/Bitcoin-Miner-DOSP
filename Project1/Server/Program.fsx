@@ -10,7 +10,6 @@ open Akka.Configuration
 open System.Diagnostics
 open Util
 
-
 let server_port = 5000
 
 let configuration =
@@ -70,7 +69,6 @@ let PrinterActor (mailbox: Actor<_>) =
             printf "%d %s\n" coins message
             return! loop ()
         }
-
     loop ()
 
 let printerRef =
@@ -140,19 +138,16 @@ let ServerSubordinateActor (mailbox: Actor<_>) =
     loop ()
 
 
-
-
-
-
-
 let ServerBoss (mailbox: Actor<_>) =
     let serverSubActorRef = spawn mailbox.Context "ServerSubActor" ServerSubordinateActor
     let mutable startInd = 1L
     let jobSize = 200000L
     let maxInd = 10000000L
-    let mutable blocksInProgress = maxInd/jobSize       
+    //let mutable blocksInProgress = maxInd/jobSize       
     let mutable remoteMachinesConnected = 0
     let mutable numOfZeros = 0
+    let mutable localblocksInProgress = 0L
+    let mutable remoteBlockInProgress = 0L
     
     let rec loop () =
         actor {
@@ -163,34 +158,38 @@ let ServerBoss (mailbox: Actor<_>) =
             | :? string as msg ->
                 match msg with
                 | "DoneRemote" ->
-                       blocksInProgress <- blocksInProgress - 1L 
-                       if (startInd>=maxInd && blocksInProgress = 0L) then
-                         sender <! "shutdown"
+                       remoteBlockInProgress <- remoteBlockInProgress - 1L
+                       if (startInd>=maxInd && remoteBlockInProgress = 0L) then
+                         if (localblocksInProgress = 0L) then
+                            sender <! "shutdown"
                          //remoteMachinesConnected <- remoteMachinesConnected - 1
-                         printf "In remote calculation block startInd %d\n" startInd 
-                         mailbox.Context.System.Terminate()|>ignore
+                            printf "In remote calculation block startInd %d\n" startInd 
+                            remoteBlockInProgress <- remoteBlockInProgress + 1L
+                            mailbox.Context.System.Terminate()|>ignore
                        else
-                         sender <! (startInd, startInd+jobSize-1L, numOfZeros)  
+                         sender <! (startInd, startInd+jobSize-1L, numOfZeros)
+                         remoteBlockInProgress <- remoteBlockInProgress + 1L  
                 | "Joining" ->
                         if (startInd>=maxInd) then 
                           sender <! "shutdown"
                         else
                           sender <! (startInd, startInd+jobSize-1L, numOfZeros)
+                          remoteBlockInProgress <- remoteBlockInProgress + 1L
             | :? JobDetails as jd ->
                 match jd with
                 | Criteria (k) -> 
                     numOfZeros <- k
                     serverSubActorRef <! Input(startInd,startInd+jobSize-1L,numOfZeros)
+                    localblocksInProgress <-  localblocksInProgress + 1L
                 | Done (complete) ->
-                    blocksInProgress <- blocksInProgress - 1L
+                    localblocksInProgress <-  localblocksInProgress - 1L
                     if (startInd>=maxInd) then
-                        if (blocksInProgress > 0L ) then
-                            ()
-                        else
-                            printf "connected: %d maxInd %d" blocksInProgress maxInd
+                        if (localblocksInProgress = 0L && remoteBlockInProgress = 0L) then
+                            //printf "connected: %d maxInd %d" blocksInProgress maxInd
                             mailbox.Context.System.Terminate()|>ignore
                     else
                         serverSubActorRef <! Input(startInd,startInd+jobSize-1L,numOfZeros)
+                        localblocksInProgress <-  localblocksInProgress + 1L
             | _ -> ()            
             startInd <- startInd + jobSize                
             return! loop ()
