@@ -1,0 +1,8 @@
+{
+  "runtimeOptions": {
+    "additionalProbingPaths": [
+      "/home/pypalkar23/.dotnet/store/|arch|/|tfm|",
+      "/home/pypalkar23/.nuget/packages"
+    ]
+  }
+}
