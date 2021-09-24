@@ -24,7 +24,7 @@ let configuration =
             remote.helios.tcp {
                 transport-protocol = tcp
                 port = 5000
-                hostname = 0.0.0.0
+                hostname = 10.20.81.11
             }
         }"
     )
@@ -141,13 +141,13 @@ let ServerSubordinateActor (mailbox: Actor<_>) =
 let ServerBoss (mailbox: Actor<_>) =
     let serverSubActorRef = spawn mailbox.Context "ServerSubActor" ServerSubordinateActor
     let mutable startInd = 1L
-    let jobSize = 200000L
-    let maxInd = 10000000L
+    let jobSize = 2000000L
+    let maxInd = 100000000L
     //let mutable blocksInProgress = maxInd/jobSize       
     let mutable remoteMachinesConnected = 0
     let mutable numOfZeros = 0
-    let mutable localblocksInProgress = 0L
-    let mutable remoteBlockInProgress = 0L
+    let mutable localBlocksInProgress = 0L
+    let mutable remoteBlocksInProgress = 0L
     
     let rec loop () =
         actor {
@@ -158,38 +158,38 @@ let ServerBoss (mailbox: Actor<_>) =
             | :? string as msg ->
                 match msg with
                 | "DoneRemote" ->
-                       remoteBlockInProgress <- remoteBlockInProgress - 1L
-                       if (startInd>=maxInd && remoteBlockInProgress = 0L) then
-                         if (localblocksInProgress = 0L) then
+                       remoteBlocksInProgress <- remoteBlocksInProgress - 1L
+                       if (startInd>=maxInd && remoteBlocksInProgress = 0L) then
+                         if (localBlocksInProgress = 0L) then
                             sender <! "shutdown"
                          //remoteMachinesConnected <- remoteMachinesConnected - 1
                             printf "In remote calculation block startInd %d\n" startInd 
-                            remoteBlockInProgress <- remoteBlockInProgress + 1L
+                            remoteBlocksInProgress <- remoteBlocksInProgress + 1L
                             mailbox.Context.System.Terminate()|>ignore
                        else
                          sender <! (startInd, startInd+jobSize-1L, numOfZeros)
-                         remoteBlockInProgress <- remoteBlockInProgress + 1L  
+                         remoteBlocksInProgress <- remoteBlocksInProgress + 1L  
                 | "Joining" ->
                         if (startInd>=maxInd) then 
                           sender <! "shutdown"
                         else
                           sender <! (startInd, startInd+jobSize-1L, numOfZeros)
-                          remoteBlockInProgress <- remoteBlockInProgress + 1L
+                          remoteBlocksInProgress <- remoteBlocksInProgress + 1L
             | :? JobDetails as jd ->
                 match jd with
                 | Criteria (k) -> 
                     numOfZeros <- k
                     serverSubActorRef <! Input(startInd,startInd+jobSize-1L,numOfZeros)
-                    localblocksInProgress <-  localblocksInProgress + 1L
+                    localBlocksInProgress <-  localBlocksInProgress + 1L
                 | Done (complete) ->
-                    localblocksInProgress <-  localblocksInProgress - 1L
+                    localBlocksInProgress <-  localBlocksInProgress - 1L
                     if (startInd>=maxInd) then
-                        if (localblocksInProgress = 0L && remoteBlockInProgress = 0L) then
+                        if (localBlocksInProgress = 0L && remoteBlocksInProgress = 0L) then
                             //printf "connected: %d maxInd %d" blocksInProgress maxInd
                             mailbox.Context.System.Terminate()|>ignore
                     else
                         serverSubActorRef <! Input(startInd,startInd+jobSize-1L,numOfZeros)
-                        localblocksInProgress <-  localblocksInProgress + 1L
+                        localBlocksInProgress <-  localBlocksInProgress + 1L
             | _ -> ()            
             startInd <- startInd + jobSize                
             return! loop ()
@@ -199,13 +199,14 @@ let ServerBoss (mailbox: Actor<_>) =
 let serverBossRef =
     spawn actorSystem "ServerBossActor" ServerBoss
 
+let zeroCount = Environment.GetCommandLineArgs().[1] |> int
 let proc = Process.GetCurrentProcess()
 let cpuTimeStamp = proc.TotalProcessorTime
 let timer = new Stopwatch()
 timer.Start()
 
 try
-    serverBossRef <! Criteria(4)
+    serverBossRef <! Criteria(zeroCount)
     actorSystem.WhenTerminated.Wait()
 finally
     let cpuTime =
