@@ -89,7 +89,7 @@ let ServerWorker (mailbox: Actor<_>) =
                     let hashVal = prefixedString |> Util.calculateSHA256
 
                     if checkInitialZeros (hashVal, k, 0) then
-                        printerRef <! prefixedString+" "+hashVal   
+                        printerRef <! (prefixedString+" "+hashVal)   
                 sender <! Done("completed")
             | _ -> ()
             return! loop ()
