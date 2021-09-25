@@ -34,6 +34,7 @@ Run following commands in your console.
 -  If there are more batches that are yet to be processed on the server, then the Server assigns the next batch inline to the remote worker.
 - When there are no more batches to be processed. Server sends ``shutdown`` signal to RemoteWorker(if there is one) asking it to terminate and then terminate itself.
 
+![alt text](https://github.com/pypalkar23/Bitcoin-Miner-DOSP/blob/main/Proj1_System.png)
 
 ### Program Results ###
 **Sample Coins Mined:**    
