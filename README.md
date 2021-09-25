@@ -75,6 +75,7 @@ Run following commands in your console.
 #### Benchmarks For 4 Coins:####
 **Results**:
 - Coins Mined (4 zeros): 6170
+- Total Unit Size : 400000000
 
 **Server Machine Configuration:**
 - Processor: Intel Core i7-5500U CPU@2.40 Ghz
@@ -82,6 +83,7 @@ Run following commands in your console.
 - Actors : 1000 
 - CPU Time: 2392200 ms
 - Absolute Time: 880255 ms
+- CPU-Absolute Ratio = 2.717
 
 **Remote Machine Configuration:**
 - Processor: Intel Core i3-5005U CPU @ 2.00GHz
@@ -89,6 +91,7 @@ Run following commands in your console.
 - Actors: 1000
 - CPU Time: 2042480 ms
 - Absolute Time: 850817 ms
+- CPU-Absolute Ratio = 2.4
 
 **Largest Coin Found**
 1 mandar.palkar573263448 000000061a2eb7de66acb48721f1bb2338d87793b36523182bbb691a389602e7 r
