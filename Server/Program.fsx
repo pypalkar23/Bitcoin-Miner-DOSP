@@ -102,7 +102,7 @@ let ServerSubordinateActor (mailbox: Actor<_>) =
     let numberOfCores =
         System.Environment.ProcessorCount |> int64
 
-    let numberOfChildActors = numberOfCores * 2000L
+    let numberOfChildActors = numberOfCores * 250L
     let splitSize = numberOfChildActors * 2L
     let workerActorsPool =
         [ 1L .. numberOfChildActors ]
