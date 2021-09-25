@@ -76,6 +76,7 @@ Run following commands in your console.
 **Results**:
 - Coins Mined (4 zeros): 6170
 - Total Unit Size : 400000000
+- Largest Number of Working Machines Connected : 2
 
 **Server Machine Configuration:**
 - Processor: Intel Core i7-5500U CPU@2.40 Ghz
@@ -94,7 +95,8 @@ Run following commands in your console.
 - CPU-Absolute Ratio = 2.4
 
 **Largest Coin Found**
-1 mandar.palkar573263448 000000061a2eb7de66acb48721f1bb2338d87793b36523182bbb691a389602e7 r
+8 Zeros- 1 siddhiwadgaonkar132995480 0000000096c7c9c0a3ae88d46d527eba4a2e455371e5c0f85ae0571a6151af7f
+7 zeros- 1 mandar.palkar573263448 000000061a2eb7de66acb48721f1bb2338d87793b36523182bbb691a389602e7 
 
 
 
