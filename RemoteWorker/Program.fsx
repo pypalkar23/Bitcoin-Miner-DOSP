@@ -126,6 +126,10 @@ let RemoteBoss (ipAddress: string) (mailbox: Actor<_>) =
                 match jd with
                 | Join ("join") -> serverRef <! "Joining"
                 | Done (complete) ->
+                    (*
+                        Keep track of divided work among subworkers. if all the chunks have processed. Mark the work as complete.
+                        And send complete signal to server.
+                    *)
                     splitsInProcess <- splitsInProcess - 1L
                     if (splitsInProcess = 0L) then 
                         printf "Finished Processing For Block %d-%d\n" tempStart tempEnd

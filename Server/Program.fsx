@@ -58,7 +58,7 @@ let assignJobsToWorkers
         chunkStart <- chunkEnd + 1L
         chunkEnd <- chunkEnd + splitSize
 
-
+//Prints Coins Which are reported by remote and server workers
 let PrinterActor (mailbox: Actor<_>) =
     let mutable coins = 0L
 
@@ -74,6 +74,7 @@ let PrinterActor (mailbox: Actor<_>) =
 let printerRef =
         spawn actorSystem "PrinterActor" PrinterActor    
 
+// Local sub worker that calculates hash
 let ServerWorker (mailbox: Actor<_>) =
     let rec loop () =
         actor {
@@ -97,7 +98,7 @@ let ServerWorker (mailbox: Actor<_>) =
     loop ()
 
 
-
+//takes block assigned by server boss and distributes work to local workers
 let ServerSubordinateActor (mailbox: Actor<_>) =
     let numberOfCores =
         System.Environment.ProcessorCount |> int64
@@ -139,6 +140,7 @@ let ServerSubordinateActor (mailbox: Actor<_>) =
     loop ()
 
 
+// Assigns block to local as well remote workers in block sizes of 200000
 let ServerBoss (mailbox: Actor<_>) =
     let serverSubActorRef = spawn mailbox.Context "ServerSubActor" ServerSubordinateActor
     let mutable startInd = 1L
@@ -159,6 +161,8 @@ let ServerBoss (mailbox: Actor<_>) =
             | :? string as msg ->
                 match msg with
                 | "DoneRemote" ->
+                       (*Check if any blocks are yet to be processed. if yes assign next block 
+                       to remote worker. Else send shutdown signal to remote worker*)
                        remoteBlocksInProgress <- remoteBlocksInProgress - 1L
                        if (startInd>=maxInd && remoteBlocksInProgress = 0L) then
                          if (localBlocksInProgress = 0L) then
@@ -171,6 +175,8 @@ let ServerBoss (mailbox: Actor<_>) =
                          sender <! (startInd, startInd+jobSize-1L, numOfZeros)
                          remoteBlocksInProgress <- remoteBlocksInProgress + 1L  
                 | "Joining" ->
+                        (*New remote worker has joined. if blocks are yet to be processed assign
+                         work to remote worker. otherwise send the shutdown signal *)
                         if (startInd>=maxInd) then 
                           sender <! "shutdown"
                         else
@@ -180,10 +186,13 @@ let ServerBoss (mailbox: Actor<_>) =
                 match jd with
                 | Criteria (k) -> 
                     numOfZeros <- k
-                    maxInd <- multiplier * (k|>int64)
+                    maxInd <- multiplier * (k|>int64) 
                     serverSubActorRef <! Input(startInd,startInd+jobSize-1L,numOfZeros)
                     localBlocksInProgress <-  localBlocksInProgress + 1L
                 | Done (complete) ->
+                    (*Block assigned locally was processed.
+                     Check if any new block is yet to be processed. otherwise
+                     shutdown the System.*)         
                     localBlocksInProgress <-  localBlocksInProgress - 1L
                     if (startInd>=maxInd) then
                         if (localBlocksInProgress = 0L && remoteBlocksInProgress = 0L) then
