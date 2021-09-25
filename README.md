@@ -33,7 +33,7 @@ Run following commands in your console.
 
 
 ### Program Results ###
-Sample Coins Mined:
+**Sample Coins Mined:**    
 6139 mandar.palkar396188865 0000d2baef3ecf2e1bb9ec2d258f3820820fb622927018d5afafe153ae15b4d2
 6140 mandar.palkar396283901 0000a3ad93ee38cb61b4ec6aca99c0558d697fee4581ff0c1f09f6dc9e7d938c
 6141 mandar.palkar396322433 000094f6ec225954d98f25c01337afcab87a3fced067c93e1112851a52e478aa
@@ -68,7 +68,29 @@ Sample Coins Mined:
 6170 mandar.palkar397997374 00003972357932e329e14a5433c9859600f9e8223af0157fb377337c53905ce1
 
 
-Benchmarks:
-On Server Mach
+#### Benchmarks For 4 Coins:####
+**Results**:
+- Coins Mined (4 zeros): 6170
+
+**Server Machine Configuration:**
+- Processor: Intel Core i7-5500U CPU@2.40 Ghz
+- Cores :4
+- Actors : 1000 
+- CPU Time: 2392200 ms
+- Absolute Time: 880255 ms
+
+**Remote Machine Configuration:**
+- Processor: Intel Core i3-5005U CPU @ 2.00GHz
+- Cores: 4
+- Actors: 1000
+- CPU Time: 2042480 ms
+- Absolute Time: 850817 ms
+
+
+
+
+
+
+
 
 
