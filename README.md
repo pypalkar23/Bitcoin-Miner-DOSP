@@ -1,8 +1,8 @@
 # DOSP Bitcoin Miner #
 
 ## Project Members ##
-* Mandar Palkar (UFID: 2140-6740)
-* Siddhi Wadgaonkar (UFID: 9544-2212)
+* Mandar Palkar
+* Siddhi Wadgaonkar 
 
 ## Requirements: ##
 The project was tested with
