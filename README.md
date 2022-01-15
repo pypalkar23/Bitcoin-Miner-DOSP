@@ -95,8 +95,8 @@ Run following commands in your console.
 - CPU-Absolute Ratio = 2.4
 
 **Largest Coin Found**
-8 Zeros- 1 siddhiwadgaonkar132995480 0000000096c7c9c0a3ae88d46d527eba4a2e455371e5c0f85ae0571a6151af7f
-7 zeros- 1 mandar.palkar573263448 000000061a2eb7de66acb48721f1bb2338d87793b36523182bbb691a389602e7 
+8 Zeros- 1 `siddhiwadgaonkar132995480 0000000096c7c9c0a3ae88d46d527eba4a2e455371e5c0f85ae0571a6151af7f`
+7 zeros- 1 `mandar.palkar573263448 000000061a2eb7de66acb48721f1bb2338d87793b36523182bbb691a389602e7`
 
 
 
